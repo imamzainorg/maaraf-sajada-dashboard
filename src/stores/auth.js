@@ -46,7 +46,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-<<<<<<< HEAD
     refreshSession(data) {
       this.token = data.token
       this.refreshToken = data.refreshToken
@@ -67,10 +66,6 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('refreshToken', this.refreshToken)
       localStorage.setItem('user', JSON.stringify(this.user))
     },
-
-
-=======
->>>>>>> 6973ff87b308c5d8c75fd183b6bbea67c52beb9b
     async login(contact, password) {
       this.loading = true
       this.error = null
