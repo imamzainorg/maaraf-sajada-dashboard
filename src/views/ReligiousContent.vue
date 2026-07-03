@@ -71,12 +71,23 @@
         </div>
 
         <!-- Audio Player test if audio exists -->
-        <div v-if="content.audioUrl" class="bg-slate-950/60 p-3 rounded-xl border border-slate-900/60 space-y-2">
-          <div class="flex items-center gap-2">
-            <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0" />
-            <span class="text-xs text-slate-400 truncate">اختبار مشغل الصوت</span>
+        <div v-if="content.audioUrlAr || content.audioUrlEn || content.audioUrlFa" class="bg-slate-950/60 p-3 rounded-xl border border-slate-900/60 space-y-2 text-xs">
+          <div class="flex items-center gap-2 border-b border-slate-900/60 pb-1.5 mb-1.5">
+            <Volume2 class="w-4.5 h-4.5 text-primary-400 flex-shrink-0" />
+            <span class="font-bold text-slate-400">معاينة الصوتيات</span>
           </div>
-          <audio :src="content.audioUrl" controls class="w-full h-8 rounded-lg outline-none bg-slate-900"></audio>
+          <div v-if="content.audioUrlAr" class="space-y-1">
+            <span class="text-[10px] text-slate-500 font-semibold block">العربية:</span>
+            <audio :src="content.audioUrlAr" controls class="w-full h-6 rounded outline-none bg-slate-900"></audio>
+          </div>
+          <div v-if="content.audioUrlEn" class="space-y-1">
+            <span class="text-[10px] text-slate-500 font-semibold block">الانجليزية:</span>
+            <audio :src="content.audioUrlEn" controls class="w-full h-6 rounded outline-none bg-slate-900"></audio>
+          </div>
+          <div v-if="content.audioUrlFa" class="space-y-1">
+            <span class="text-[10px] text-slate-500 font-semibold block">الفارسية:</span>
+            <audio :src="content.audioUrlFa" controls class="w-full h-6 rounded outline-none bg-slate-900"></audio>
+          </div>
         </div>
 
         <!-- Actions -->
@@ -152,36 +163,103 @@
             <textarea v-model="modal.form.contentText" rows="5" placeholder="اكتب نص الدعاء أو الزيارة هنا..." class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 focus:border-primary-500 outline-none text-white text-sm leading-relaxed"></textarea>
           </div>
 
+          <!-- Arabic Audio Upload -->
           <div>
-            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (Audio File - اختياري)</label>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (العربية - اختياري)</label>
             <div class="flex items-center gap-3">
               <input
                 type="file"
                 accept="audio/*"
-                @change="handleAudioUpload"
+                @change="handleAudioUpload($event, 'Ar')"
                 class="hidden"
-                ref="audioInputRef"
+                ref="audioInputArRef"
               />
               <button
                 type="button"
-                @click="audioInputRef.click()"
+                @click="audioInputArRef.click()"
                 class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold transition flex items-center gap-2"
-                :disabled="uploadingAudio"
+                :disabled="uploadingAudioAr"
               >
-                <UploadCloud v-if="!uploadingAudio" class="w-4 h-4 text-primary-400" />
+                <UploadCloud v-if="!uploadingAudioAr" class="w-4 h-4 text-primary-400" />
                 <Loader2 v-else class="w-4 h-4 animate-spin text-primary-400" />
-                <span>{{ uploadingAudio ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
+                <span>{{ uploadingAudioAr ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
               </button>
               
-              <div v-if="modal.form.audioUrl" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
+              <div v-if="modal.form.audioUrlAr" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
                 <div class="flex items-center gap-2 truncate">
                   <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0 animate-pulse" />
-                  <span class="truncate text-[10px] text-slate-500">تم الرفع بنجاح</span>
+                  <span class="truncate text-[10px] text-slate-500" :title="modal.form.audioUrlAr">تم الرفع بنجاح</span>
                 </div>
-                <button type="button" @click="modal.form.audioUrl = ''" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
+                <button type="button" @click="modal.form.audioUrlAr = ''; modal.form.audioUrl = '';" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
               </div>
             </div>
-            <input v-model="modal.form.audioUrl" type="hidden" />
+            <input v-model="modal.form.audioUrlAr" type="hidden" />
+          </div>
+
+          <!-- English Audio Upload -->
+          <div>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (الانجليزية - اختياري)</label>
+            <div class="flex items-center gap-3">
+              <input
+                type="file"
+                accept="audio/*"
+                @change="handleAudioUpload($event, 'En')"
+                class="hidden"
+                ref="audioInputEnRef"
+              />
+              <button
+                type="button"
+                @click="audioInputEnRef.click()"
+                class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold transition flex items-center gap-2"
+                :disabled="uploadingAudioEn"
+              >
+                <UploadCloud v-if="!uploadingAudioEn" class="w-4 h-4 text-primary-400" />
+                <Loader2 v-else class="w-4 h-4 animate-spin text-primary-400" />
+                <span>{{ uploadingAudioEn ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
+              </button>
+              
+              <div v-if="modal.form.audioUrlEn" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
+                <div class="flex items-center gap-2 truncate">
+                  <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0 animate-pulse" />
+                  <span class="truncate text-[10px] text-slate-500" :title="modal.form.audioUrlEn">تم الرفع بنجاح</span>
+                </div>
+                <button type="button" @click="modal.form.audioUrlEn = ''" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
+              </div>
+            </div>
+            <input v-model="modal.form.audioUrlEn" type="hidden" />
+          </div>
+
+          <!-- Persian Audio Upload -->
+          <div>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (الفارسية - اختياري)</label>
+            <div class="flex items-center gap-3">
+              <input
+                type="file"
+                accept="audio/*"
+                @change="handleAudioUpload($event, 'Fa')"
+                class="hidden"
+                ref="audioInputFaRef"
+              />
+              <button
+                type="button"
+                @click="audioInputFaRef.click()"
+                class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold transition flex items-center gap-2"
+                :disabled="uploadingAudioFa"
+              >
+                <UploadCloud v-if="!uploadingAudioFa" class="w-4 h-4 text-primary-400" />
+                <Loader2 v-else class="w-4 h-4 animate-spin text-primary-400" />
+                <span>{{ uploadingAudioFa ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
+              </button>
+              
+              <div v-if="modal.form.audioUrlFa" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
+                <div class="flex items-center gap-2 truncate">
+                  <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0 animate-pulse" />
+                  <span class="truncate text-[10px] text-slate-500" :title="modal.form.audioUrlFa">تم الرفع بنجاح</span>
+                </div>
+                <button type="button" @click="modal.form.audioUrlFa = ''" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
+              </div>
+            </div>
+            <input v-model="modal.form.audioUrlFa" type="hidden" />
           </div>
 
           <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
@@ -202,15 +280,22 @@ import { Plus, Edit3, Trash2, Search, BookOpen, Volume2, Loader2, UploadCloud } 
 
 const contentStore = useReligiousContentStore()
 
-const uploadingAudio = ref(false)
-const audioInputRef = ref(null)
+const uploadingAudioAr = ref(false)
+const uploadingAudioEn = ref(false)
+const uploadingAudioFa = ref(false)
 
-const handleAudioUpload = async (event) => {
+const audioInputArRef = ref(null)
+const audioInputEnRef = ref(null)
+const audioInputFaRef = ref(null)
+
+const handleAudioUpload = async (event, lang) => {
   const files = event.target.files
   if (!files || files.length === 0) return
 
   const file = files[0]
-  uploadingAudio.value = true
+  if (lang === 'Ar') uploadingAudioAr.value = true
+  else if (lang === 'En') uploadingAudioEn.value = true
+  else if (lang === 'Fa') uploadingAudioFa.value = true
 
   const formData = new FormData()
   formData.append('File', file)
@@ -222,13 +307,31 @@ const handleAudioUpload = async (event) => {
         'Content-Type': 'multipart/form-data'
       }
     })
-    modal.form.audioUrl = response.data.url
+    
+    if (lang === 'Ar') {
+      modal.form.audioUrlAr = response.data.url
+      modal.form.audioUrl = response.data.url
+    }
+    else if (lang === 'En') modal.form.audioUrlEn = response.data.url
+    else if (lang === 'Fa') modal.form.audioUrlFa = response.data.url
   } catch (err) {
     alert('فشل رفع الملف الصوتي. تأكد من اتصالك بالإنترنت والامتداد.')
   } finally {
-    uploadingAudio.value = false
-    if (audioInputRef.value) {
-      audioInputRef.value.value = ''
+    if (lang === 'Ar') {
+      uploadingAudioAr.value = false
+      if (audioInputArRef.value) {
+        audioInputArRef.value.value = ''
+      }
+    } else if (lang === 'En') {
+      uploadingAudioEn.value = false
+      if (audioInputEnRef.value) {
+        audioInputEnRef.value.value = ''
+      }
+    } else if (lang === 'Fa') {
+      uploadingAudioFa.value = false
+      if (audioInputFaRef.value) {
+        audioInputFaRef.value.value = ''
+      }
     }
   }
 }
@@ -251,6 +354,9 @@ const modal = reactive({
     contentTypeFa: '',
     contentText: '',
     audioUrl: '',
+    audioUrlAr: '',
+    audioUrlEn: '',
+    audioUrlFa: '',
     readerNameAr: '',
     readerNameEn: '',
     readerNameFa: ''
@@ -287,7 +393,10 @@ const openModal = (content = null) => {
       contentTypeEn: content.contentTypeEn || '',
       contentTypeFa: content.contentTypeFa || '',
       contentText: content.contentText,
-      audioUrl: content.audioUrl,
+      audioUrl: content.audioUrl || '',
+      audioUrlAr: content.audioUrlAr || '',
+      audioUrlEn: content.audioUrlEn || '',
+      audioUrlFa: content.audioUrlFa || '',
       readerNameAr: content.readerNameAr || content.readerName || '',
       readerNameEn: content.readerNameEn || '',
       readerNameFa: content.readerNameFa || ''
@@ -304,6 +413,9 @@ const openModal = (content = null) => {
       contentTypeFa: '',
       contentText: '',
       audioUrl: '',
+      audioUrlAr: '',
+      audioUrlEn: '',
+      audioUrlFa: '',
       readerNameAr: '',
       readerNameEn: '',
       readerNameFa: ''

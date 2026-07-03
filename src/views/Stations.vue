@@ -124,9 +124,19 @@
             </div>
             <h4 class="font-bold text-white">{{ dhikr.titleAr || dhikr.title }}</h4>
             <p class="text-slate-400 text-xs line-clamp-3 leading-relaxed">{{ dhikr.contentTextAr || dhikr.contentText }}</p>
-            <div v-if="dhikr.audioUrl" class="flex items-center gap-2 pt-2 border-t border-slate-800/40">
-              <Volume2 class="w-3.5 h-3.5 text-primary-400" />
-              <span class="text-xs text-primary-400 truncate max-w-[200px]" :title="dhikr.audioUrl">ملف صوتي مرفق</span>
+             <div v-if="dhikr.audioUrlAr || dhikr.audioUrlEn || dhikr.audioUrlFa" class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 border-t border-slate-800/40 text-[10px]">
+              <div v-if="dhikr.audioUrlAr" class="flex items-center gap-1 text-primary-400">
+                <Volume2 class="w-3 h-3" />
+                <span>عربي</span>
+              </div>
+              <div v-if="dhikr.audioUrlEn" class="flex items-center gap-1 text-indigo-400">
+                <Volume2 class="w-3 h-3" />
+                <span>انجليزي</span>
+              </div>
+              <div v-if="dhikr.audioUrlFa" class="flex items-center gap-1 text-amber-400">
+                <Volume2 class="w-3 h-3" />
+                <span>فارسي</span>
+              </div>
             </div>
           </div>
 
@@ -222,36 +232,103 @@
             <label class="block text-slate-350 text-sm font-semibold mb-2">النص الديني للذكر (الفارسية)</label>
             <textarea v-model="dhikrModal.form.contentTextFa" rows="4" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 focus:border-primary-500 outline-none text-white text-sm leading-relaxed"></textarea>
           </div>
+          <!-- Arabic Audio Upload -->
           <div>
-            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (Audio File - اختياري)</label>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (العربية - اختياري)</label>
             <div class="flex items-center gap-3">
               <input
                 type="file"
                 accept="audio/*"
-                @change="handleAudioUpload"
+                @change="handleAudioUpload($event, 'Ar')"
                 class="hidden"
-                ref="audioInputRef"
+                ref="audioInputArRef"
               />
               <button
                 type="button"
-                @click="audioInputRef.click()"
+                @click="audioInputArRef.click()"
                 class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold transition flex items-center gap-2"
-                :disabled="uploadingAudio"
+                :disabled="uploadingAudioAr"
               >
-                <UploadCloud v-if="!uploadingAudio" class="w-4 h-4 text-primary-400" />
+                <UploadCloud v-if="!uploadingAudioAr" class="w-4 h-4 text-primary-400" />
                 <Loader2 v-else class="w-4 h-4 animate-spin text-primary-400" />
-                <span>{{ uploadingAudio ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
+                <span>{{ uploadingAudioAr ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
               </button>
               
-              <div v-if="dhikrModal.form.audioUrl" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
+              <div v-if="dhikrModal.form.audioUrlAr" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
                 <div class="flex items-center gap-2 truncate">
                   <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0 animate-pulse" />
-                  <span class="truncate text-[10px] text-slate-500">تم الرفع بنجاح</span>
+                  <span class="truncate text-[10px] text-slate-500" :title="dhikrModal.form.audioUrlAr">تم الرفع بنجاح</span>
                 </div>
-                <button type="button" @click="dhikrModal.form.audioUrl = ''" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
+                <button type="button" @click="dhikrModal.form.audioUrlAr = ''; dhikrModal.form.audioUrl = '';" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
               </div>
             </div>
-            <input v-model="dhikrModal.form.audioUrl" type="hidden" />
+            <input v-model="dhikrModal.form.audioUrlAr" type="hidden" />
+          </div>
+
+          <!-- English Audio Upload -->
+          <div>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (الانجليزية - اختياري)</label>
+            <div class="flex items-center gap-3">
+              <input
+                type="file"
+                accept="audio/*"
+                @change="handleAudioUpload($event, 'En')"
+                class="hidden"
+                ref="audioInputEnRef"
+              />
+              <button
+                type="button"
+                @click="audioInputEnRef.click()"
+                class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold transition flex items-center gap-2"
+                :disabled="uploadingAudioEn"
+              >
+                <UploadCloud v-if="!uploadingAudioEn" class="w-4 h-4 text-primary-400" />
+                <Loader2 v-else class="w-4 h-4 animate-spin text-primary-400" />
+                <span>{{ uploadingAudioEn ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
+              </button>
+              
+              <div v-if="dhikrModal.form.audioUrlEn" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
+                <div class="flex items-center gap-2 truncate">
+                  <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0 animate-pulse" />
+                  <span class="truncate text-[10px] text-slate-500" :title="dhikrModal.form.audioUrlEn">تم الرفع بنجاح</span>
+                </div>
+                <button type="button" @click="dhikrModal.form.audioUrlEn = ''" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
+              </div>
+            </div>
+            <input v-model="dhikrModal.form.audioUrlEn" type="hidden" />
+          </div>
+
+          <!-- Persian Audio Upload -->
+          <div>
+            <label class="block text-slate-300 text-sm font-semibold mb-2">ملف الصوت (الفارسية - اختياري)</label>
+            <div class="flex items-center gap-3">
+              <input
+                type="file"
+                accept="audio/*"
+                @change="handleAudioUpload($event, 'Fa')"
+                class="hidden"
+                ref="audioInputFaRef"
+              />
+              <button
+                type="button"
+                @click="audioInputFaRef.click()"
+                class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold transition flex items-center gap-2"
+                :disabled="uploadingAudioFa"
+              >
+                <UploadCloud v-if="!uploadingAudioFa" class="w-4 h-4 text-primary-400" />
+                <Loader2 v-else class="w-4 h-4 animate-spin text-primary-400" />
+                <span>{{ uploadingAudioFa ? 'جاري الرفع...' : 'اختر ملف الصوت' }}</span>
+              </button>
+              
+              <div v-if="dhikrModal.form.audioUrlFa" class="flex-1 flex items-center justify-between gap-2 bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-xl text-xs text-slate-400">
+                <div class="flex items-center gap-2 truncate">
+                  <Volume2 class="w-4 h-4 text-primary-400 flex-shrink-0 animate-pulse" />
+                  <span class="truncate text-[10px] text-slate-500" :title="dhikrModal.form.audioUrlFa">تم الرفع بنجاح</span>
+                </div>
+                <button type="button" @click="dhikrModal.form.audioUrlFa = ''" class="text-rose-400 hover:text-rose-300 font-bold px-1">حذف</button>
+              </div>
+            </div>
+            <input v-model="dhikrModal.form.audioUrlFa" type="hidden" />
           </div>
           <div>
             <label class="block text-slate-300 text-sm font-semibold mb-2">ترتيب الظهور</label>
@@ -277,15 +354,22 @@ import { Plus, MapPin, Edit3, Trash2, X, Volume2, Loader2, BookOpen, UploadCloud
 const stationsStore = useStationsStore()
 const selectedStation = ref(null)
 
-const uploadingAudio = ref(false)
-const audioInputRef = ref(null)
+const uploadingAudioAr = ref(false)
+const uploadingAudioEn = ref(false)
+const uploadingAudioFa = ref(false)
 
-const handleAudioUpload = async (event) => {
+const audioInputArRef = ref(null)
+const audioInputEnRef = ref(null)
+const audioInputFaRef = ref(null)
+
+const handleAudioUpload = async (event, lang) => {
   const files = event.target.files
   if (!files || files.length === 0) return
 
   const file = files[0]
-  uploadingAudio.value = true
+  if (lang === 'Ar') uploadingAudioAr.value = true
+  else if (lang === 'En') uploadingAudioEn.value = true
+  else if (lang === 'Fa') uploadingAudioFa.value = true
 
   const formData = new FormData()
   formData.append('File', file)
@@ -297,13 +381,31 @@ const handleAudioUpload = async (event) => {
         'Content-Type': 'multipart/form-data'
       }
     })
-    dhikrModal.form.audioUrl = response.data.url
+    
+    if (lang === 'Ar') {
+      dhikrModal.form.audioUrlAr = response.data.url
+      dhikrModal.form.audioUrl = response.data.url
+    }
+    else if (lang === 'En') dhikrModal.form.audioUrlEn = response.data.url
+    else if (lang === 'Fa') dhikrModal.form.audioUrlFa = response.data.url
   } catch (err) {
     alert('فشل رفع الملف الصوتي. تأكد من اتصالك بالإنترنت والامتداد.')
   } finally {
-    uploadingAudio.value = false
-    if (audioInputRef.value) {
-      audioInputRef.value.value = ''
+    if (lang === 'Ar') {
+      uploadingAudioAr.value = false
+      if (audioInputArRef.value) {
+        audioInputArRef.value.value = ''
+      }
+    } else if (lang === 'En') {
+      uploadingAudioEn.value = false
+      if (audioInputEnRef.value) {
+        audioInputEnRef.value.value = ''
+      }
+    } else if (lang === 'Fa') {
+      uploadingAudioFa.value = false
+      if (audioInputFaRef.value) {
+        audioInputFaRef.value.value = ''
+      }
     }
   }
 }
@@ -339,6 +441,9 @@ const dhikrModal = reactive({
     contentTextEn: '',
     contentTextFa: '',
     audioUrl: '',
+    audioUrlAr: '',
+    audioUrlEn: '',
+    audioUrlFa: '',
     sortOrder: 1
   }
 })
@@ -429,6 +534,9 @@ const openDhikrModal = (dhikr = null) => {
       contentTextEn: dhikr.contentTextEn || '',
       contentTextFa: dhikr.contentTextFa || '',
       audioUrl: dhikr.audioUrl || '',
+      audioUrlAr: dhikr.audioUrlAr || '',
+      audioUrlEn: dhikr.audioUrlEn || '',
+      audioUrlFa: dhikr.audioUrlFa || '',
       sortOrder: dhikr.sortOrder
     }
   } else {
@@ -442,6 +550,9 @@ const openDhikrModal = (dhikr = null) => {
       contentTextEn: '',
       contentTextFa: '',
       audioUrl: '',
+      audioUrlAr: '',
+      audioUrlEn: '',
+      audioUrlFa: '',
       sortOrder: stationsStore.currentStationDhikrs.length + 1
     }
   }
