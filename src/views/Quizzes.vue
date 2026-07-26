@@ -144,8 +144,8 @@
 
         <div class="space-y-4">
           <p class="text-xs text-slate-400 leading-relaxed">
-            انسخ والصق نص الأسئلة دفعة واحدة. يدعم النظام التنسيق التالي تلقائياً:<br/>
-            <code class="text-indigo-300">1. نص السؤال هنا</code><br/>
+            انسخ والصق نص الأسئلة دفعة واحدة. سيتم تنظيف أرقام وأحرف الأسئلة والخيارات تلقائياً واعتماد رقم الترتيب من رقم السؤال:<br/>
+            <code class="text-indigo-300">21. أكمل حق اليد:...</code><br/>
             <code class="text-indigo-300">a. الخيار الأول (الجواب الصحيح)</code><br/>
             <code class="text-indigo-300">b. الخيار الثاني</code>
           </p>
@@ -175,8 +175,8 @@
                 :key="pidx"
                 class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 space-y-1"
               >
-                <div class="font-bold text-white">{{ pidx + 1 }}. {{ pq.questionTextAr }}</div>
-                <div class="text-slate-400">الخيارات: {{ pq.options.map(o => o.optionTextAr + (o.isCorrect ? ' (صحيح✓)' : '')).join(' | ') }}</div>
+                <div class="font-bold text-white">ترتيب #{{ pq.sortOrder }}: {{ pq.questionTextAr }}</div>
+                <div class="text-slate-400">الخيارات النظيفة: {{ pq.options.map(o => o.optionTextAr + (o.isCorrect ? ' (صحيح✓)' : '')).join(' | ') }}</div>
               </div>
             </div>
           </div>
@@ -477,25 +477,48 @@ const parseBulkText = () => {
   const raw = bulkModal.textInput.trim()
   const blocks = raw.split(/\n(?=\d+[\.\)]\s*)/)
   const results = []
-  let sortOrder = quizzesStore.questions.length + 1
+  let autoSortOrder = quizzesStore.questions.length + 1
 
   for (const block of blocks) {
     if (!block.trim()) continue
     const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
     if (lines.length < 2) continue
 
-    const qTextLine = lines[0].replace(/^\d+[\.\)]\s*/, '')
+    // Extract question number (sortOrder) and clean question text
+    const qMatch = lines[0].match(/^(\d+)[\.\)]\s*(.*)/)
+    let sortOrder = autoSortOrder++
+    let qTextLine = lines[0]
+
+    if (qMatch) {
+      sortOrder = parseInt(qMatch[1], 10) || sortOrder
+      qTextLine = qMatch[2].trim()
+    } else {
+      qTextLine = lines[0].replace(/^\d+[\.\)]\s*/, '').trim()
+    }
+
     const options = []
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i]
-      if (line.match(/^[a-d\u0620-\u064A][\.\)]/i)) {
-        let isCorrect = false
-        let optText = line.replace(/^[a-d\u0620-\u064A][\.\)]\s*/i, '')
-        if (optText.includes('(الجواب الصحيح)')) {
-          isCorrect = true
-          optText = optText.replace('(الجواب الصحيح)', '').trim()
-        }
+      if (line.startsWith('المحطة:') || line.startsWith('النقاط:')) continue
+
+      // Match option letter prefix: a., b., c., d. or a), b), c), d) or أ., ب., ج., د.
+      const optMatch = line.match(/^([a-d\u0620-\u064A])[\.\)]\s*(.*)/i)
+      let isCorrect = false
+      let optText = ''
+
+      if (optMatch) {
+        optText = optMatch[2].trim()
+      } else {
+        optText = line.trim()
+      }
+
+      if (optText.includes('(الجواب الصحيح)')) {
+        isCorrect = true
+        optText = optText.replace('(الجواب الصحيح)', '').trim()
+      }
+
+      if (optText) {
         options.push({ optionTextAr: optText, isCorrect })
       }
     }
@@ -504,7 +527,7 @@ const parseBulkText = () => {
       results.push({
         questionTextAr: qTextLine,
         points: 5,
-        sortOrder: sortOrder++,
+        sortOrder: sortOrder,
         options
       })
     }
