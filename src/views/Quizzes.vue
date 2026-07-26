@@ -29,18 +29,27 @@
 
     <!-- Main quiz content screen -->
     <div v-if="selectedStationId" class="space-y-6">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
           <HelpCircle class="w-5 h-5 text-indigo-400" />
           <span>الأسئلة المسجلة للمحطة</span>
         </h3>
-        <button
-          @click="openQuestionModal"
-          class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 font-bold text-white shadow-md shadow-primary-600/15 text-sm"
-        >
-          <Plus class="w-4.5 h-4.5" />
-          <span>إضافة سؤال وخيارات</span>
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            @click="openBulkModal"
+            class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-white shadow-md text-sm transition"
+          >
+            <FileText class="w-4.5 h-4.5" />
+            <span>استيراد أسئلة دفعة واحدة</span>
+          </button>
+          <button
+            @click="openQuestionModal"
+            class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 font-bold text-white shadow-md shadow-primary-600/15 text-sm transition"
+          >
+            <Plus class="w-4.5 h-4.5" />
+            <span>إضافة سؤال منفرد</span>
+          </button>
+        </div>
       </div>
 
       <!-- Loading / Empty states -->
@@ -118,6 +127,74 @@
     <div v-else class="py-16 glass-panel rounded-2xl text-center text-slate-500">
       <HelpCircle class="w-12 h-12 mx-auto text-slate-700 mb-4 animate-bounce" />
       <span>يرجى اختيار محطة من القائمة المنسدلة في الأعلى لعرض اختباراتها.</span>
+    </div>
+
+    <!-- Bulk Import Modal -->
+    <div v-if="bulkModal.show" class="fixed inset-0 bg-black/75 z-30 flex items-center justify-center p-4">
+      <div class="w-full max-w-3xl glass-panel p-6 rounded-2xl border border-slate-800 space-y-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <FileText class="w-5 h-5 text-indigo-400" />
+            <span>استيراد أسئلة دفعة واحدة (Bulk Import)</span>
+          </h3>
+          <button @click="bulkModal.show = false" class="text-slate-400 hover:text-white">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <p class="text-xs text-slate-400 leading-relaxed">
+            انسخ والصق نص الأسئلة دفعة واحدة. يدعم النظام التنسيق التالي تلقائياً:<br/>
+            <code class="text-indigo-300">1. نص السؤال هنا</code><br/>
+            <code class="text-indigo-300">a. الخيار الأول (الجواب الصحيح)</code><br/>
+            <code class="text-indigo-300">b. الخيار الثاني</code>
+          </p>
+
+          <div>
+            <textarea
+              v-model="bulkModal.textInput"
+              @input="parseBulkText"
+              rows="8"
+              placeholder="الصق نص الأسئلة هنا..."
+              class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 focus:border-indigo-500 outline-none text-white text-xs font-mono leading-relaxed"
+            ></textarea>
+          </div>
+
+          <!-- Preview section -->
+          <div v-if="bulkModal.parsedQuestions.length > 0" class="space-y-3 border-t border-slate-800 pt-4">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 class="w-4 h-4" />
+                <span>تم التعرف على {{ bulkModal.parsedQuestions.length }} سؤالاً جاهزاً للرفع!</span>
+              </span>
+            </div>
+
+            <div class="max-h-48 overflow-y-auto space-y-2 pr-1">
+              <div
+                v-for="(pq, pidx) in bulkModal.parsedQuestions"
+                :key="pidx"
+                class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 space-y-1"
+              >
+                <div class="font-bold text-white">{{ pidx + 1 }}. {{ pq.questionTextAr }}</div>
+                <div class="text-slate-400">الخيارات: {{ pq.options.map(o => o.optionTextAr + (o.isCorrect ? ' (صحيح✓)' : '')).join(' | ') }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <button type="button" @click="bulkModal.show = false" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">إلغاء</button>
+          <button
+            type="button"
+            @click="submitBulkQuestions"
+            :disabled="bulkModal.parsedQuestions.length === 0 || bulkModal.uploading"
+            class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm shadow-md flex items-center gap-2"
+          >
+            <Loader2 v-if="bulkModal.uploading" class="w-4 h-4 animate-spin" />
+            <span>{{ bulkModal.uploading ? 'جاري الرفع...' : 'رفع كل الأسئلة (' + bulkModal.parsedQuestions.length + ')' }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Create Question & Options Atomic Modal -->
@@ -247,7 +324,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useStationsStore } from '@/stores/stations'
 import { useQuizzesStore } from '@/stores/quizzes'
-import { Plus, Edit3, Trash2, HelpCircle, CheckCircle2, Circle, X, Loader2 } from 'lucide-vue-next'
+import { Plus, Edit3, Trash2, HelpCircle, CheckCircle2, Circle, X, Loader2, FileText } from 'lucide-vue-next'
 
 const stationsStore = useStationsStore()
 const quizzesStore = useQuizzesStore()
@@ -283,6 +360,14 @@ const optionModal = reactive({
     optionTextFa: '',
     isCorrect: false
   }
+})
+
+// Bulk Modal State
+const bulkModal = reactive({
+  show: false,
+  textInput: '',
+  parsedQuestions: [],
+  uploading: false
 })
 
 onMounted(async () => {
@@ -350,7 +435,6 @@ const submitQuestion = async () => {
         sortOrder: questionModal.form.sortOrder
       })
     } else {
-      // Validate option completeness
       if (questionModal.form.options.length < 2) {
         alert('يجب إضافة خيارين على الأقل.')
         return
@@ -378,6 +462,75 @@ const deleteQuestion = async (questionId) => {
   }
 }
 
+// Bulk Import functions
+const openBulkModal = () => {
+  bulkModal.textInput = ''
+  bulkModal.parsedQuestions = []
+  bulkModal.show = true
+}
+
+const parseBulkText = () => {
+  if (!bulkModal.textInput.trim()) {
+    bulkModal.parsedQuestions = []
+    return
+  }
+  const raw = bulkModal.textInput.trim()
+  const blocks = raw.split(/\n(?=\d+[\.\)]\s*)/)
+  const results = []
+  let sortOrder = quizzesStore.questions.length + 1
+
+  for (const block of blocks) {
+    if (!block.trim()) continue
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length < 2) continue
+
+    const qTextLine = lines[0].replace(/^\d+[\.\)]\s*/, '')
+    const options = []
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.match(/^[a-d\u0620-\u064A][\.\)]/i)) {
+        let isCorrect = false
+        let optText = line.replace(/^[a-d\u0620-\u064A][\.\)]\s*/i, '')
+        if (optText.includes('(الجواب الصحيح)')) {
+          isCorrect = true
+          optText = optText.replace('(الجواب الصحيح)', '').trim()
+        }
+        options.push({ optionTextAr: optText, isCorrect })
+      }
+    }
+
+    if (options.length >= 2) {
+      results.push({
+        questionTextAr: qTextLine,
+        points: 5,
+        sortOrder: sortOrder++,
+        options
+      })
+    }
+  }
+
+  bulkModal.parsedQuestions = results
+}
+
+const submitBulkQuestions = async () => {
+  if (bulkModal.parsedQuestions.length === 0) return
+  bulkModal.uploading = true
+  try {
+    const { successCount, errors } = await quizzesStore.bulkCreateQuestions(selectedStationId.value, bulkModal.parsedQuestions)
+    bulkModal.uploading = false
+    bulkModal.show = false
+    if (errors.length > 0) {
+      alert(`تم رفع ${successCount} سؤالاً بنجاح. فشل رفع ${errors.length} أسئلة بسبب التعارض.`)
+    } else {
+      alert(`تم رفع جميع الأسئلة الـ (${successCount}) بنجاح!`)
+    }
+  } catch (err) {
+    bulkModal.uploading = false
+    alert('حدث خطأ أثناء رفع الأسئلة.')
+  }
+}
+
 // Option CRUD
 const openOptionModal = (question, option) => {
   optionModal.questionId = question.questionId
@@ -395,7 +548,6 @@ const submitOption = async () => {
   try {
     await quizzesStore.updateOption(selectedStationId.value, optionModal.optionId, optionModal.form)
     optionModal.show = false
-    // Refresh to update UI correctness flags cleanly
     await quizzesStore.fetchQuestions(selectedStationId.value)
   } catch (err) {
     alert('حدث خطأ أثناء تحديث الخيار.')
