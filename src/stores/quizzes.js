@@ -25,9 +25,7 @@ export const useQuizzesStore = defineStore('quizzes', {
 
     async createQuestion(stationId, questionData) {
       try {
-        // questionData has questionText, points, sortOrder, options: [{optionText, isCorrect}]
         const response = await axiosInstance.post(`/api/admin/stations/${stationId}/quiz`, questionData)
-        // Refresh questions list after creation to get full object from server
         await this.fetchQuestions(stationId)
         return response.data
       } catch (err) {
@@ -35,9 +33,25 @@ export const useQuizzesStore = defineStore('quizzes', {
       }
     },
 
+    async bulkCreateQuestions(stationId, questionsArray) {
+      this.loading = true
+      let successCount = 0
+      let errors = []
+      for (const q of questionsArray) {
+        try {
+          await axiosInstance.post(`/api/admin/stations/${stationId}/quiz`, q)
+          successCount++
+        } catch (err) {
+          errors.push(q.questionTextAr || q.questionText)
+        }
+      }
+      await this.fetchQuestions(stationId)
+      this.loading = false
+      return { successCount, errors }
+    },
+
     async updateQuestion(stationId, questionId, questionData) {
       try {
-        // questionData has questionText, points, sortOrder
         await axiosInstance.put(`/api/admin/questions/${questionId}`, questionData)
         const index = this.questions.findIndex(q => q.questionId === questionId)
         if (index !== -1) {
@@ -57,12 +71,9 @@ export const useQuizzesStore = defineStore('quizzes', {
       }
     },
 
-    // Option operations
     async updateOption(stationId, optionId, optionData) {
       try {
-        // optionData has optionText, isCorrect
         await axiosInstance.put(`/api/admin/options/${optionId}`, optionData)
-        // Locally update option state
         for (const q of this.questions) {
           const opt = q.quizOptions?.find(o => o.optionId === optionId)
           if (opt) {
@@ -79,7 +90,6 @@ export const useQuizzesStore = defineStore('quizzes', {
     async deleteOption(stationId, optionId) {
       try {
         await axiosInstance.delete(`/api/admin/options/${optionId}`)
-        // Locally remove option
         for (const q of this.questions) {
           if (q.quizOptions) {
             q.quizOptions = q.quizOptions.filter(o => o.optionId !== optionId)
