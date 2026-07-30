@@ -239,18 +239,14 @@ onMounted(async () => {
     console.error('Failed to load recent users:', err)
   }
 
-  // 6. Fetch overall user stats (total users & total points) with casing support & fallback
+  // 6. Fetch overall user stats (total users & total points) from new API endpoint
   try {
     const usersStatsResponse = await axiosInstance.get('/api/admin/users/stats')
     const data = usersStatsResponse.data
     stats.value.users = data.totalUsers ?? data.TotalUsers ?? data.count ?? 0
     stats.value.totalPoints = data.totalPoints ?? data.TotalPoints ?? 0
   } catch (err) {
-    console.warn('Backend /api/admin/users/stats not ready or deploying on Render, using fallback:', err)
-    if (recentUsers.value.length > 0) {
-      stats.value.users = recentUsers.value[0].userId
-      stats.value.totalPoints = recentUsers.value.reduce((acc, u) => acc + (u.totalPoints || 0), 0)
-    }
+    console.warn('Backend /api/admin/users/stats is still deploying on Render Docker build:', err)
   }
 
   // 7. Fetch active users in last 2 hours
