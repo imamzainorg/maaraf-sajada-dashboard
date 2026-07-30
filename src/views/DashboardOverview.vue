@@ -219,8 +219,12 @@ onMounted(async () => {
       params: { limit: 5, offset: 0 }
     })
     recentUsers.value = usersResponse.data
-    stats.value.users = usersResponse.data.length > 0 ? usersResponse.data[0].userId * 3 : 15 // Mock estimation since backend has no count endpoint
-    stats.value.totalPoints = usersResponse.data.reduce((acc, u) => acc + u.totalPoints, 0)
+
+    // Fetch real overall stats (total registered users count & total points distributed)
+    const usersStatsResponse = await axiosInstance.get('/api/admin/users/stats')
+    stats.value.users = usersStatsResponse.data.totalUsers
+    stats.value.totalPoints = usersStatsResponse.data.totalPoints
+
     // 6. Fetch active users in last 2 hours
     const activeCountResponse = await axiosInstance.get('/api/admin/users/active-count', {
       params: { hours: 2 }
