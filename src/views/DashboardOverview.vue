@@ -196,42 +196,71 @@ const formatTableName = (name) => {
 }
 
 onMounted(async () => {
+  // 1. Fetch active stations
   try {
-    // 1. Fetch active stations
     const stationsResponse = await axiosInstance.get('/api/stations')
     stats.value.stations = stationsResponse.data.length
     stats.value.dhikrs = stationsResponse.data.reduce((acc, s) => acc + (s.rightsCount || 0), 0)
+  } catch (err) {
+    console.error('Failed to load stations stats:', err)
+  }
 
-    // 2. Fetch active amenities
+  // 2. Fetch active amenities
+  try {
     const amenitiesResponse = await axiosInstance.get('/api/Amenities')
     stats.value.amenities = amenitiesResponse.data.length
+  } catch (err) {
+    console.error('Failed to load amenities stats:', err)
+  }
 
-    // 3. Fetch religious content
+  // 3. Fetch religious content
+  try {
     const contentResponse = await axiosInstance.get('/api/ReligiousContent')
     stats.value.religiousContent = contentResponse.data.length
+  } catch (err) {
+    console.error('Failed to load religious content stats:', err)
+  }
 
-    // 4. Fetch sync versions
+  // 4. Fetch sync versions
+  try {
     const syncResponse = await axiosInstance.get('/api/sync/versions')
     syncVersions.value = syncResponse.data
+  } catch (err) {
+    console.error('Failed to load sync versions:', err)
+  }
 
-    // 5. Fetch recent users (Admin route)
+  // 5. Fetch recent users (Admin route)
+  try {
     const usersResponse = await axiosInstance.get('/api/admin/users', {
       params: { limit: 5, offset: 0 }
     })
-    recentUsers.value = usersResponse.data
+    recentUsers.value = usersResponse.data || []
+  } catch (err) {
+    console.error('Failed to load recent users:', err)
+  }
 
-    // Fetch real overall stats (total registered users count & total points distributed)
+  // 6. Fetch overall user stats (total users & total points) with casing support & fallback
+  try {
     const usersStatsResponse = await axiosInstance.get('/api/admin/users/stats')
-    stats.value.users = usersStatsResponse.data.totalUsers
-    stats.value.totalPoints = usersStatsResponse.data.totalPoints
+    const data = usersStatsResponse.data
+    stats.value.users = data.totalUsers ?? data.TotalUsers ?? data.count ?? 0
+    stats.value.totalPoints = data.totalPoints ?? data.TotalPoints ?? 0
+  } catch (err) {
+    console.warn('Backend /api/admin/users/stats not ready or deploying on Render, using fallback:', err)
+    if (recentUsers.value.length > 0) {
+      stats.value.users = recentUsers.value[0].userId
+      stats.value.totalPoints = recentUsers.value.reduce((acc, u) => acc + (u.totalPoints || 0), 0)
+    }
+  }
 
-    // 6. Fetch active users in last 2 hours
+  // 7. Fetch active users in last 2 hours
+  try {
     const activeCountResponse = await axiosInstance.get('/api/admin/users/active-count', {
       params: { hours: 2 }
     })
-    stats.value.activeUsers = activeCountResponse.data.count
+    stats.value.activeUsers = activeCountResponse.data.count || 0
   } catch (err) {
-    console.error('Failed to load dashboard statistics', err)
+    console.error('Failed to load active users count:', err)
   }
 })
 </script>
