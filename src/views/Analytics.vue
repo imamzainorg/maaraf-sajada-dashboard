@@ -846,7 +846,30 @@ const loadAllData = async () => {
       stats.accuracyRate        = 0
     }
 
-    // 6. بناء توزيع المحافظات
+    // 6. جلب ملخص الاختبارات الجماعي لكل زائر بطلب واحد خفيف جداً (/api/admin/quizzes/users-summary)
+    try {
+      const summaryRes = await axiosInstance.get('/api/admin/quizzes/users-summary')
+      const summaryList = summaryRes.data || []
+      const summaryMap = new Map()
+      summaryList.forEach(s => {
+        const uid = s.userId ?? s.UserId
+        summaryMap.set(uid, s)
+      })
+
+      enrichedUsers.forEach(u => {
+        const s = summaryMap.get(u.userId)
+        if (s) {
+          u.quizSubmissionsCount = s.quizSubmissionsCount ?? s.QuizSubmissionsCount ?? 0
+          u.correctAnswersCount  = s.correctAnswersCount  ?? s.CorrectAnswersCount  ?? 0
+          u.wrongAnswersCount    = s.wrongAnswersCount    ?? s.WrongAnswersCount    ?? 0
+          u.accuracy             = s.accuracy             ?? s.Accuracy             ?? 0
+        }
+      })
+    } catch (err) {
+      console.warn('Failed to fetch per-user quiz summaries:', err)
+    }
+
+    // 7. بناء توزيع المحافظات
     const colorPalette = ['#8b5cf6','#6366f1','#10b981','#f59e0b','#ec4899','#14b8a6','#f97316','#3b82f6','#64748b']
     const govMap = {}
     enrichedUsers.forEach(u => {
