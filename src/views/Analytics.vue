@@ -1021,7 +1021,7 @@ const openUserDetailModal = async (user) => {
   }
 }
 
-// ── تصدير Excel (CSV مع BOM لدعم العربية) ──
+// ── تصدير Excel (CSV مُميّز بـ UTF-8 BOM لفتح التقرير الشامل مباشرةً في Microsoft Excel) ──
 const csvEscape = (val) => {
   if (val === null || val === undefined) return ''
   const str = String(val)
@@ -1031,69 +1031,122 @@ const csvEscape = (val) => {
   return str
 }
 
-const triggerExcelExport = () => {
+const exportToExcel = () => {
   const today = new Date().toLocaleDateString('ar-EG')
   const rows = []
 
-  // القسم 1: الإحصائيات العامة
-  rows.push(['قسم 1: ملخص الإحصائيات العامة للتطبيق'])
-  rows.push(['البيان', 'القيمة'])
-  rows.push(['إجمالي الزوار المسجلين', stats.totalUsers])
-  rows.push(['الزوار النشطون (آخر ساعتين)', stats.activeUsers])
-  rows.push(['منجزو الحقوق الـ 50 بالكامل', stats.completed50Users])
-  rows.push(['نسبة منجزي الـ 50 حقاً (%)', stats.completed50Percentage + '%'])
-  rows.push(['مستوى متقدم (25-49 حق)', stats.midRightsUsers])
-  rows.push(['بداية المسار (أقل من 25 حق)', stats.lowRightsUsers])
-  rows.push(['عدد المحافظات المشاركة', stats.totalGovernorates])
-  rows.push(['تاريخ التقرير', today])
+  // ── القسم 1: ملخص الإحصائيات العامة للتطبيق ──
+  rows.push(['قسم 1: ملخص الإحصائيات العامة للتطبيق والمؤشرات'])
+  rows.push(['البيان / المؤشر', 'القيمة'])
+  rows.push(['إجمالي الزوار المسجلين', stats.totalUsers || 0])
+  rows.push(['الزوار النشطون (آخر ساعتين)', stats.activeUsers || 0])
+  rows.push(['منجزو الحقوق الـ 50 بالكامل', stats.completed50Users || 0])
+  rows.push(['نسبة منجزي الـ 50 حقاً (%)', (stats.completed50Percentage || 0) + '%'])
+  rows.push(['مستوى متقدم (25-49 حق)', stats.midRightsUsers || 0])
+  rows.push(['بداية المسار (أقل من 25 حق)', stats.lowRightsUsers || 0])
+  rows.push(['إجمالي مشاركات وتجربات الأسئلة', stats.totalQuizAttempts || 0])
+  rows.push(['إجمالي الإجابات الصحيحة', stats.correctAnswersCount || 0])
+  rows.push(['إجمالي الإجابات الخاطئة', stats.wrongAnswersCount || 0])
+  rows.push(['معدل دقة الإجابات الكلي (%)', (stats.accuracyRate || 0) + '%'])
+  rows.push(['متوسط الأسئلة لكل زائر', stats.avgQuizPerUser || 0])
+  rows.push(['عدد المحافظات المشاركة', stats.totalGovernorates || 0])
+  rows.push(['تاريخ استخراج التقرير', today])
   rows.push([])
 
-  // القسم 2: التوزيع الجغرافي
+  // ── القسم 2: التوزيع الجغرافي حسب المحافظة ──
   rows.push(['قسم 2: التوزيع الجغرافي للمشاركين حسب المحافظة/المدينة'])
   rows.push(['المحافظة / المدينة', 'عدد الزوار', 'النسبة المئوية (%)', 'منجزو الـ 50 حقاً', 'إجمالي النقاط'])
-  sortedGovernorates.value.forEach(g => {
-    rows.push([g.name, g.count, g.percentage + '%', g.completed50Count, g.totalPoints])
-  })
-  rows.push([])
-
-  // القسم 3: لوحة شرف
-  rows.push(['قسم 3: لوحة شرف منجزي الحقوق الـ 50 بالكامل'])
-  rows.push(['اسم الزائر', 'المعرف', 'المحافظة / المدينة', 'الحقوق المنجزة', 'نسبة الإنجاز', 'إجمالي النقاط', 'رقم الهاتف', 'البريد الإلكتروني'])
-  const achievers = usersList.value.filter(u => u.completedRightsCount >= 50)
-  if (achievers.length === 0) {
-    rows.push(['لا يوجد منجزون بعد', '', '', '', '', '', '', ''])
+  if (sortedGovernorates.value.length === 0) {
+    rows.push(['لا توجد بيانات جغرافية', 0, '0%', 0, 0])
   } else {
-    achievers.forEach(u => {
-      rows.push([u.fullName, u.userId, u.city || 'غير محددة', u.completedRightsCount, '100%', u.totalPoints || 0, u.phoneNumber || '', u.email || ''])
+    sortedGovernorates.value.forEach(g => {
+      rows.push([
+        g.name || 'غير محددة',
+        g.count || 0,
+        (g.percentage || 0) + '%',
+        g.completed50Count || 0,
+        g.totalPoints || 0
+      ])
     })
   }
   rows.push([])
 
-  // القسم 4: جدول تفصيلي لكل زائر
+  // ── القسم 3: لوحة شرف منجزي الحقوق الـ 50 ──
+  rows.push(['قسم 3: لوحة شرف منجزي الحقوق الـ 50 بالكامل'])
+  rows.push(['اسم الزائر', 'المعرف', 'المحافظة / المدينة', 'الحقوق المنجزة', 'نسبة الإنجاز', 'إجمالي النقاط', 'رقم الهاتف', 'البريد الإلكتروني'])
+  const achievers = usersList.value.filter(u => (u.completedRightsCount || 0) >= 50)
+  if (achievers.length === 0) {
+    rows.push(['لا يوجد منجزون بعد', '', '', '', '', '', '', ''])
+  } else {
+    achievers.forEach(u => {
+      rows.push([
+        u.fullName || 'غير محدد',
+        `#${u.userId}`,
+        u.city || 'غير محددة',
+        u.completedRightsCount || 0,
+        '100%',
+        u.totalPoints || 0,
+        u.phoneNumber || 'غير متوفر',
+        u.email || 'غير متوفر'
+      ])
+    })
+  }
+  rows.push([])
+
+  // ── القسم 4: جدول إحصائيات الزوار التفصيلية (كل زائر) ──
   rows.push(['قسم 4: جدول إحصائيات الزوار التفصيلية (زائر بزائر)'])
   rows.push([
-    'الاسم الكامل', 'المعرف', 'المحافظة / المدينة', 'رقم الهاتف', 'البريد الإلكتروني',
-    'الحقوق المنجزة (من 50)', 'نسبة الإنجاز (%)', 'ختم الـ 50 كاملاً؟',
-    'عدد الاختبارات المشارك فيها', 'نقاط صحيحة', 'نقاط خاطئة', 'نسبة الدقة (%)', 'إجمالي النقاط', 'تاريخ التسجيل'
+    'الاسم الكامل',
+    'المعرف',
+    'المحافظة / المدينة',
+    'رقم الهاتف',
+    'البريد الإلكتروني',
+    'الحقوق المنجزة (من 50)',
+    'نسبة الإنجاز (%)',
+    'ختم الـ 50 كاملاً؟',
+    'عدد محاولات الاختبارات',
+    'الإجابات الصحيحة',
+    'الإجابات الخاطئة',
+    'نسبة الدقة (%)',
+    'إجمالي النقاط المكتسبة',
+    'تاريخ التسجيل'
   ])
+
   usersList.value.forEach(u => {
-    const regDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('ar-EG') : ''
+    const regDate = u.createdAt
+      ? new Date(u.createdAt).toLocaleDateString('ar-EG')
+      : 'غير متوفر'
+
+    const rightsCount = u.completedRightsCount || 0
+    const rightsPercent = Math.round((rightsCount / 50) * 100)
+    const isCompleted50 = rightsCount >= 50 ? 'نعم 🏅' : 'لا'
+
     rows.push([
-      u.fullName, u.userId, u.city || 'غير محددة', u.phoneNumber || '', u.email || '',
-      u.completedRightsCount, Math.round((u.completedRightsCount / 50) * 100) + '%',
-      u.completedRightsCount >= 50 ? 'نعم 🏅' : 'لا',
-      u.quizSubmissionsCount || 0, u.correctAnswersCount, u.wrongAnswersCount,
-      u.accuracy + '%', u.totalPoints || 0, regDate
+      u.fullName || 'غير محدد',
+      `#${u.userId}`,
+      u.city || 'غير محددة',
+      u.phoneNumber || 'غير متوفر',
+      u.email || 'غير متوفر',
+      rightsCount,
+      rightsPercent + '%',
+      isCompleted50,
+      u.quizSubmissionsCount || 0,
+      u.correctAnswersCount || 0,
+      u.wrongAnswersCount || 0,
+      (u.accuracy || 0) + '%',
+      u.totalPoints || 0,
+      regDate
     ])
   })
   rows.push([])
 
-  // بناء CSV مع BOM للعربية
+  // بناء محتوى الـ CSV وتغليفه بـ UTF-8 BOM لفتحه مباشرة بـ Microsoft Excel بدعم كامل للعربية
   const csvContent = rows.map(row => row.map(csvEscape).join(',')).join('\r\n')
   const BOM = '\uFEFF'
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
   const dateStamp = new Date().toISOString().split('T')[0]
-  const fileName = `تقرير-معارف-سجادية-${dateStamp}.csv`
+  const fileName = `تقرير-معارف-سجادية-الشامل-${dateStamp}.csv`
+
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.setAttribute('href', url)
@@ -1103,6 +1156,9 @@ const triggerExcelExport = () => {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
+
+// دالة مرادفة لدعم التسميتين
+const triggerExcelExport = exportToExcel
 </script>
 
 <style scoped>
