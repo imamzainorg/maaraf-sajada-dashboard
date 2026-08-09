@@ -98,6 +98,16 @@ export const useQuizzesStore = defineStore('quizzes', {
       } catch (err) {
         throw err.response?.data || err
       }
+    },
+
+    async fetchQuizStats() {
+      try {
+        const response = await axiosInstance.get('/api/admin/quizzes/stats')
+        return response.data
+      } catch (err) {
+        console.error('Failed to fetch aggregate quiz stats:', err)
+        return null
+      }
     }
   }
 })

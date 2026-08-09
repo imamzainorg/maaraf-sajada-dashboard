@@ -57,6 +57,11 @@ const routes = [
         name: 'Media',
         component: () => import('@/views/Media.vue')
       },
+      {
+        path: 'analytics',
+        name: 'Analytics',
+        component: () => import('@/views/Analytics.vue')
+      },
 
       {
         path: 'super/roles',
